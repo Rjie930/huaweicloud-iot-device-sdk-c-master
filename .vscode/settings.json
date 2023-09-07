@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "cjson.h": "c",
+        "stdbool.h": "c",
+        "stdio.h": "c"
+    }
+}
