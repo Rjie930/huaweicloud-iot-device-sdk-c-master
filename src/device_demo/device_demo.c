@@ -1,12 +1,7 @@
-#include "input.h"
-#include "map.h"
 #include <stdio.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <semaphore.h>
-sem_t s;
-
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -24,19 +19,23 @@ sem_t s;
 #include "mqttv5_util.h"
 #include "securec.h"
 
-#ifdef SSH_SWITCH
-#include "wss_client.h"
-#endif
+// led
+bool led_status_flag = false;
+int fd_led;
+char buf[2];
+char led_num;
+char led_status[4] = {0};
 
-#ifdef SOFT_BUS_OPTION2
-#include "soft_bus_datatrans.h"
-#include "dconncaseone_interface.h"
-#endif
-/*
- * if you want to use syslog,you should do this:
- * #include "syslog.h"
- * #define _SYS_LOG
- */
+// buzzer
+int buzzer_fd;
+// 蜂鸣器自动状态
+bool auto_status = true;
+// buzzer图标状态
+bool buzzer_stat = false;
+// static buzzer_stat = 0;
+
+// 警报的使能状态
+bool alarm_status = true;
 
 static char *g_workPath = ".";
 
@@ -51,14 +50,8 @@ static char *g_password = "12345678";
 
 static int g_disconnected = 0;
 
-// for batch properties report
-static char *g_subDeviceId = "XXXX";
+static char *g_subDeviceId = "";
 
-/* If you use #define CUSTOM_RECONNECT_SWITCH , enable customized reconnection example
- * it demostrates how to use IOTA_IsConnected() to check conneciton state and reconnect outside
- * the callback of EN_IOTA_CALLBACK_CONNECT_SUCCESS and EN_IOTA_CALLBACK_CONNECT_FAILURE.
- * Note: the change is only a sample, for reference only
- */
 #ifndef CUSTOM_RECONNECT_SWITCH
 static int g_connectFailedTimes = 0;
 #endif
@@ -102,174 +95,11 @@ static void Test_GtwAddSubDevice(void);
 static void Test_GtwDelSubDevice(void);
 static void Test_ReportDeviceInfo(void);
 
-#if defined(MQTTV5)
-static void Test_CorreaytionData(void);
-static void Test_ContentType(void);
-static void Test_UserProperty(void);
-static void Test_MessageReportV5(void);
-static void Test_PropertiesReportV5(void);
-#endif
-
 void TimeSleep(int ms)
 {
-#if defined(WIN32) || defined(WIN64)
-    Sleep(ms);
-#else
     usleep(ms * 1000);
-#endif
-}
-// -----------------Test  MQTT5.0 ------------------------
-#if defined(MQTTV5)
-
-// V5 correlation data and response topic
-static void Test_CorreaytionData()
-{
-    MQTTV5_DATA massv5 = mqttv5_initializer;
-    char *responseTopicParas = "test";
-    ST_IOTA_MESS_REP_INFO mass = {NULL, "name", "id", "content", NULL};
-    char *topic = CombineStrings(4, "$oc/devices/", g_username, "/user/", responseTopicParas);
-    char num[5] = "1234";
-
-    // MessageReport one, Topic = A, response_topic = B
-    PrintfLog(EN_LOG_LEVEL_DEBUG, "Test_CorreaytionData()\n");
-    massv5.response_topic = topic;
-    massv5.correlation_data = num;
-    int messageId = IOTA_MessageReportV5(mass, 0, NULL, &massv5);
-    if (messageId != 0)
-    {
-        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_CorreaytionData() failed, messageId %d\n", messageId);
-    }
-
-    // MessageReport two, Topic = B, response_topic = NULL
-    massv5.response_topic = NULL;
-    massv5.correlation_data = num;
-    mass.topicParas = responseTopicParas;
-    messageId = IOTA_MessageReportV5(mass, 0, NULL, &massv5);
-    if (messageId != 0)
-    {
-        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_CorreaytionData() failed, messageId %d\n", messageId);
-    }
 }
 
-// v5 contnt type
-static void Test_ContentType()
-{
-    MQTTV5_DATA massv5 = mqttv5_initializer;
-    ST_IOTA_MESS_REP_INFO mass = {NULL, "name", "id", "content", NULL};
-
-    PrintfLog(EN_LOG_LEVEL_DEBUG, "Test_ContentType()\n");
-    massv5.contnt_type = "application/json";
-
-    int messageId = IOTA_MessageReportV5(mass, 0, NULL, &massv5);
-    if (messageId != 0)
-    {
-        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_ContentType() failed, messageId %d\n", messageId);
-    }
-}
-
-// v5 User Property
-static void Test_UserProperty()
-{
-    MQTTV5_DATA massv5 = mqttv5_initializer;
-    ST_IOTA_MESS_REP_INFO mass = {NULL, "name", "id", "content", NULL};
-
-    MQTTV5_USER_PRO userProperty0;
-    MQTTV5_USER_PRO userProperty1;
-
-    PrintfLog(EN_LOG_LEVEL_DEBUG, "Test_UserProperty()\n");
-    userProperty0.key = "region";
-    userProperty0.Value = "A";
-    userProperty0.nex = &userProperty1;
-
-    userProperty1.key = "type";
-    userProperty1.Value = "JSON";
-    userProperty1.nex = NULL;
-
-    massv5.properties = &userProperty0;
-    int messageId = IOTA_MessageReportV5(mass, 0, NULL, &massv5);
-    if (messageId != 0)
-    {
-        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_UserProperty() failed, messageId %d\n", messageId);
-    }
-}
-
-// v5 message report
-static void Test_MessageReportV5()
-{
-    MQTTV5_DATA massv5 = mqttv5_initializer;
-    ST_IOTA_MESS_REP_INFO mass = {NULL, "name", "id", "content", NULL};
-
-    // MQTTV5 publish
-    MQTTV5_USER_PRO userProperty0;
-    MQTTV5_USER_PRO userProperty1;
-    userProperty0.key = "name";
-    userProperty0.Value = "B";
-    userProperty0.nex = &userProperty1;
-
-    userProperty1.key = "type";
-    userProperty1.Value = "JSON";
-    userProperty1.nex = NULL;
-
-    massv5.properties = &userProperty0;
-    massv5.response_topic = "responseTopic";
-    massv5.correlation_data = "4321";
-    massv5.contnt_type = "application/json";
-
-    // default topic
-    int messageId = IOTA_MessageReportV5(mass, 0, NULL, &massv5);
-    // user topic
-    if (messageId != 0)
-    {
-        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_MessageReportV5() failed, messageId %d\n", messageId);
-    }
-}
-
-// v5 Properties Report
-static void Test_PropertiesReportV5()
-{
-    int serviceNum = 2; // reported services' totol count
-    ST_IOTA_SERVICE_DATA_INFO services[serviceNum];
-    MQTTV5_DATA massv5 = mqttv5_initializer;
-    MQTTV5_USER_PRO userProperty0;
-    MQTTV5_USER_PRO userProperty1;
-    // ---------------the data of service1-------------------------------
-    char *service1 = "{\"Load\":\"6\",\"ImbA_strVal\":\"7\"}";
-
-    services[0].event_time =
-        GetEventTimesStamp(); // if event_time is set to NULL, the time will be the iot-platform's time.
-    services[0].service_id = "parameter";
-    services[0].properties = service1;
-
-    // ---------------the data of service2-------------------------------
-    char *service2 = "{\"PhV_phsA\":\"9\",\"PhV_phsB\":\"8\"}";
-
-    services[1].event_time = NULL;
-    services[1].service_id = "analog";
-    services[1].properties = service2;
-
-    // -------------- MQTTV5 publish -----------------------------------
-    userProperty0.key = "region";
-    userProperty0.Value = "A";
-    userProperty0.nex = &userProperty1;
-
-    userProperty1.key = "type";
-    userProperty1.Value = "JSON";
-    userProperty1.nex = NULL;
-
-    massv5.properties = &userProperty0;
-    massv5.response_topic = "responseTopic";
-    massv5.correlation_data = "1";
-    massv5.contnt_type = "application/json";
-
-    int messageId = IOTA_PropertiesReportV5(services, serviceNum, 0, NULL, &massv5);
-    if (messageId != 0)
-    {
-        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_PropertiesReportV5() failed, messageId %d\n", messageId);
-    }
-
-    MemFree(&services[0].event_time);
-}
-#endif
 // ---------------------------Test  data report------------------------------------
 
 static void Test_MessageReport(void)
@@ -346,124 +176,37 @@ static void Test_CmdRspV3(void)
     MemFree(&rsp);
 }
 
-/*
- * If you cancel #define STORE_DATA_SWITCH comments , enable offline caching¡£
- * Note: the change is only a sample, for reference only
- * Currently, the container for storing exception messages is a dynamic two-dimensional array,
- * which can be selected by users according to their business logic
- * #define STORE_DATA_SWITCH
- */
-
-/*
- * Open a space and store data, and report data at the same time
- * It is recommended to store the data of the sensor in the container
- * before reporting the data each time. Only after receiving
- * the callback of onpublishsuccess can the message be removed
- * from the container.
- */
-#if defined(STORE_DATA_SWITCH)
-#define CACHE_SPACE_MAX 100
-typedef struct
-{
-    ST_IOTA_SERVICE_DATA_INFO *services;
-    int serviceNum;
-} ServiceCacheSpace;
-
-static ServiceCacheSpace g_cacheSpace[CACHE_SPACE_MAX] = {0};
-static int g_cacheSpaceLen = 0;
-static int g_cachePosition = 0;
-
-static void Test_PropertiesStoreData(void)
-{
-    int serviceNum = 2; // reported services' totol count
-    int i = 0;
-
-    ST_IOTA_SERVICE_DATA_INFO *services =
-        (ST_IOTA_SERVICE_DATA_INFO *)malloc(sizeof(ST_IOTA_SERVICE_DATA_INFO) * serviceNum);
-    if (services == NULL)
-    {
-        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_PropertiesStoreData()  malloc failed! ");
-        return;
-    }
-    // ---------------the data of service1-------------------------------
-    char *service1 = "{\"Load\":\"6\",\"ImbA_strVal\":\"7\"}";
-
-    services->event_time =
-        GetEventTimesStamp(); // if event_time is set to NULL, the time will be the iot-platform's time.
-    services->service_id = "parameter";
-    services->properties = service1;
-
-    // ---------------the data of service2-------------------------------
-    char *service2 = "{\"PhV_phsA\":\"9\",\"PhV_phsB\":\"8\"}";
-
-    (services + 1)->event_time = NULL;
-    (services + 1)->service_id = "analog";
-    (services + 1)->properties = service2;
-
-    // Message store
-    if (g_cacheSpaceLen > CACHE_SPACE_MAX)
-    {
-        MemFree(&(g_cacheSpace[g_cachePosition].services));
-        g_cacheSpace[g_cachePosition].services = services;
-        g_cacheSpace[g_cachePosition].serviceNum = serviceNum;
-        g_cachePosition++;
-    }
-    else
-    {
-        g_cachePosition = 0;
-        for (i = 0; i < CACHE_SPACE_MAX; i++)
-        {
-            if (g_cacheSpace[i].services == NULL)
-            {
-                g_cacheSpace[i].services = services;
-                g_cacheSpace[i].serviceNum = serviceNum;
-                g_cacheSpaceLen++;
-                break;
-            }
-        }
-    }
-    // Report data -- Try resending
-    int messageId = IOTA_PropertiesReport(services, serviceNum, 0, (void *)services);
-    if (messageId != 0)
-    {
-        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_PropertiesReport() failed, messageId %d\n", messageId);
-    }
-}
-#endif
-
 static void Test_PropertiesReport(void)
 {
     const int serviceNum = 1; // reported services' totol count
     ST_IOTA_SERVICE_DATA_INFO services[serviceNum];
 
-// 生成数据
-int temp_data = rand() % 50 - 10, humid_data =68 + rand() % 10, CO2 = 350 + rand() % 650;
-char temp_str[6], humid_str[6], CO2_str[7];
-sprintf(temp_str, "%d°", temp_data);
-sprintf(humid_str, "%d%%", humid_data);
-sprintf(CO2_str, "%dppm", CO2);
+    // 生成数据
+    int temp_data = rand() % 50 - 10, humid_data = 68 + rand() % 10, CO2 = 350 + rand() % 650;
+    char temp_str[6], humid_str[6], CO2_str[7];
+    sprintf(temp_str, "%d°", temp_data);
+    sprintf(humid_str, "%d%%", humid_data);
+    sprintf(CO2_str, "%dppm", CO2);
 
-cJSON *root;
-root = cJSON_CreateObject();
-cJSON_AddStringToObject(root, "alarm", 0);
-cJSON_AddStringToObject(root, "temperature", temp_str);
-cJSON_AddStringToObject(root, "humidity", humid_str);
-cJSON_AddStringToObject(root, "CO2", CO2_str);
+    cJSON *root;
+    root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "alarm", 0);
+    cJSON_AddStringToObject(root, "temperature", temp_str);
+    cJSON_AddStringToObject(root, "humidity", humid_str);
+    cJSON_AddStringToObject(root, "CO2", CO2_str);
 
-char *service1;
-service1 = cJSON_Print(root);
-cJSON_Delete(root);
+    char *service1;
+    service1 = cJSON_Print(root);
+    cJSON_Delete(root);
 
+    services[0].event_time = GetEventTimesStamp(); // if event_time is set to NULL, the time will be the iot-platform's time.
+    services[0].service_id = "smokeDetector";
+    services[0].properties = service1;
 
-services[0].event_time = GetEventTimesStamp(); // if event_time is set to NULL, the time will be the iot-platform's time.
-services[0].service_id = "smokeDetector";
-services[0].properties = service1;
-
-
-int messageId = IOTA_PropertiesReport(services, serviceNum, 0, NULL);
-if (messageId != 0)
-{
-    PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_PropertiesReport() failed, messageId %d\n", messageId);
+    int messageId = IOTA_PropertiesReport(services, serviceNum, 0, NULL);
+    if (messageId != 0)
+    {
+        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_PropertiesReport() failed, messageId %d\n", messageId);
     }
 
     MemFree(&services[0].event_time);
@@ -795,7 +538,7 @@ static void HandleSubscribeFailure(EN_IOTA_MQTT_PROTOCOL_RSP *rsp)
 
 static void HandlePublishSuccess(EN_IOTA_MQTT_PROTOCOL_RSP *rsp)
 {
-    PrintfLog(EN_LOG_LEVEL_INFO, "device_demo: HandlePublishSuccess() messageId %d\n", rsp->mqtt_msg_info->messageId);
+    // PrintfLog(EN_LOG_LEVEL_INFO, "device_demo: HandlePublishSuccess() messageId %d\n", rsp->mqtt_msg_info->messageId);
 
 #if defined(STORE_DATA_SWITCH)
     int i = 0;
@@ -1069,6 +812,48 @@ static void HandleCommandRequest(EN_IOTA_COMMAND *command)
     PrintfLog(EN_LOG_LEVEL_INFO, "device_demo: HandleCommandRequest(), paras %s\n", command->paras);
     PrintfLog(EN_LOG_LEVEL_INFO, "device_demo: HandleCommandRequest(), request_id %s\n", command->request_id);
 
+    if (strcmp(command->command_name, "LED") == 0)
+    {
+        cJSON *root = cJSON_Parse(command->paras);
+        cJSON *number_data = cJSON_GetObjectItem(root, "number");
+        char *number = cJSON_GetStringValue(number_data);
+
+        cJSON *status_data = cJSON_GetObjectItem(root, "status");
+        char *status = cJSON_GetStringValue(status_data);
+        printf("command:%s,number:%s,value:%s\n", command->command_name, number, status);
+
+        led_num = atoi(number) + 6;
+        led_status[led_num - 7] = !led_status[led_num - 7];
+
+        buf[0] = led_status[led_num - 7];
+        buf[1] = led_num;
+        led_set(led_num, led_status);
+    }
+    else if (strcmp(command->command_name, "Buzzer") == 0)
+    {
+        cJSON *root = cJSON_Parse(command->paras);
+        cJSON *status_data = cJSON_GetObjectItem(root, "status");
+        char *status = cJSON_GetStringValue(status_data);
+        printf("command:%s,number:%s,value:%s\n", command->command_name, status);
+        buzzer_set(status);
+        auto_status = strcmp(status, "ON") == 0 ? false : true;
+    }
+    else if (strcmp(command->command_name, "alarm") == 0)
+    {
+        cJSON *root = cJSON_Parse(command->paras);
+        cJSON *status_data = cJSON_GetObjectItem(root, "status");
+        char *status = cJSON_GetStringValue(status_data);
+        printf("command:%s,value:%s\n", command->command_name, status);
+        if (strcmp(status, "enable") == 0)
+        {
+            alarm_status = true;
+        }
+        else
+        {
+            alarm_status = false;
+        }
+    }
+
     Test_CommandResponse(command->request_id); // response command
 }
 
@@ -1338,9 +1123,7 @@ static void SetAuthConfig(void)
      *
      * IOTA_ConfigSetUint(EN_IOTA_CFG_AUTH_MODE, EN_IOTA_CFG_AUTH_MODE_CERT);
      * IOTA_ConfigSetUint(EN_IOTA_CFG_PRIVATE_KEY_PASSWORD, "yourPassword");
-     *
      */
-
 #ifdef _SYS_LOG
     IOTA_ConfigSetUint(EN_IOTA_CFG_LOG_LOCAL_NUMBER, LOG_LOCAL7);
     IOTA_ConfigSetUint(EN_IOTA_CFG_LOG_LEVEL, LOG_INFO);
@@ -1471,8 +1254,139 @@ static void ReconnectDemo()
 }
 #endif
 
+#include "input.h"
+#include "map.h"
+#include <semaphore.h>
+
+#define BUZZER_IOCTL_SET_FREQ 1
+#define BUZZER_IOCTL_STOP 0
+
+sem_t s;
+
 // btn
 #define ARRY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+int temp_data = 0;
+
+// 手势
+int com = -1;
+
+// 上报属性
+static void PropertiesReport(char *Properties, char *value)
+{
+    const int serviceNum = 1; // reported services' totol count
+    ST_IOTA_SERVICE_DATA_INFO services[serviceNum];
+
+    cJSON *root;
+    root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, Properties, value);
+
+    char *service1;
+    service1 = cJSON_Print(root);
+    cJSON_Delete(root);
+
+    services[0].event_time = GetEventTimesStamp(); // if event_time is set to NULL, the time will be the iot-platform's time.
+    services[0].service_id = "smokeDetector";
+    services[0].properties = service1;
+
+    int messageId = IOTA_PropertiesReport(services, serviceNum, 0, NULL);
+    if (messageId != 0)
+    {
+        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_PropertiesReport() failed, messageId %d\n", messageId);
+    }
+
+    MemFree(&services[0].event_time);
+}
+
+void *check_xy(void *arg)
+{
+    int s = 0, x = 0, y = 0;
+    while (1)
+    {
+        s = get_xy_s(&x, &y);
+        printf("%d\n", s);
+        // 左
+        if (s == 1)
+            com = 1;
+        // 右
+        else if (s == 2)
+            com = 2;
+        // 上
+        else if (s == 3)
+            com = 3;
+        // 点
+        else if (s == 0)
+            com = 0;
+    }
+}
+
+void led_set(char led_num, char *led_status)
+{
+    // 改变led状态
+    write(fd_led, buf, sizeof(buf));
+
+    // 改变图标
+    if (led_status_flag)
+        show_led_bmp(led_num - 7, led_status[led_num - 7]);
+
+    // 上报属性
+    char led_num_data[6] = {0};
+    sprintf(led_num_data, "LED_%d", led_num - 6);
+    char led_status_data[4] = {0};
+    sprintf(led_status_data, "%s", led_status[led_num - 7] == 0 ? "OFF" : "ON");
+    printf("led_num_data: %s\n", led_num_data);
+    printf("led_status_data: %s\n", led_status_data);
+    PropertiesReport(led_num_data, led_status_data);
+}
+
+void buzzer_set(char *buzzer_status)
+{
+    printf("buzzer set %s\n", buzzer_status);
+    // 改变buzzer状态
+    if (strcmp(buzzer_status, "ON") == 0)
+    {
+        ioctl(buzzer_fd, BUZZER_IOCTL_SET_FREQ, 1);
+        if (led_status_flag)
+            show_buzzer_bmp(1);
+    }
+    else if (strcmp(buzzer_status, "OFF") == 0)
+    {
+        ioctl(buzzer_fd, BUZZER_IOCTL_STOP, 1);
+        if (led_status_flag)
+            show_buzzer_bmp(0);
+    }
+    if (strcmp(buzzer_status, "ON") == 0)
+    {
+        buzzer_stat = true;
+    }
+    else
+    {
+        buzzer_stat = false;
+    }
+
+    // 上报属性
+    PropertiesReport("Buzzer", buzzer_status);
+}
+
+void alarm_set(char *alarm_status_tmp)
+{
+    printf("buzzer set %s\n", alarm_status_tmp);
+    // 改变buzzer状态
+    if (strcmp(alarm_status_tmp, "ON") == 0)
+    {
+        alarm_status = true;
+        if (led_status_flag)
+            show_alarm_bmp(1);
+    }
+    else if (strcmp(alarm_status_tmp, "OFF") == 0)
+    {
+        alarm_status = false;
+        if (led_status_flag)
+            show_alarm_bmp(0);
+    }
+
+    // 上报属性
+    PropertiesReport("alarm", alarm_status_tmp);
+}
 
 void *getBtn(void *argv)
 {
@@ -1509,29 +1423,100 @@ void *getBtn(void *argv)
                     printf("K1 \t%s\n", current_button_value[i] == '0' ? "Release, up" : "Pressed,down");
                     if (current_button_value[i])
                     {
-                        sem_post(&s);
+                        // buzzer_set("ON");
+                        // auto_status = false;
                     }
 
                     break;
                 case 1:
                     printf("K2 \t%s\n", current_button_value[i] == '0' ? "Release, up" : "Pressed,down");
+                    if (current_button_value[i])
+                    {
+                        // buzzer_set("OFF");
+                        // auto_status = true;
+                    }
                     break;
                 case 2:
                     printf("K3 \t%s\n", current_button_value[i] == '0' ? "Release, up" : "Pressed,down");
+                    if (current_button_value[i])
+                    {
+                        temp_data = 1000;
+                    }
                     break;
                 case 3:
                     printf("K4 \t%s\n", current_button_value[i] == '0' ? "Release, up" : "Pressed,down");
                     break;
-
                 default:
                     printf("\n");
                     break;
                 }
             }
         }
+        sem_post(&s);
     }
     close(button_fd);
     pthread_exit(NULL);
+}
+
+void *Report(void *argv)
+{
+    const int serviceNum = 1; // reported services' totol count
+    ST_IOTA_SERVICE_DATA_INFO services[serviceNum];
+
+    int humid_data, CO2;
+    sem_wait(&s);
+    while (1)
+    {
+        // 生成数据
+        temp_data = rand() % 50 - 10;
+
+        printf("temp have been set\n");
+        TimeSleep(500);
+
+        humid_data = 68 + rand() % 10;
+        CO2 = 350 + rand() % 650;
+
+        // 格式化
+        char temp_str[6], humid_str[6], CO2_str[7];
+        sprintf(temp_str, "%d°", temp_data);
+        sprintf(humid_str, "%d%%", humid_data);
+        sprintf(CO2_str, "%dppm", CO2);
+
+        // 装载进json
+        cJSON *root;
+        root = cJSON_CreateObject();
+        cJSON_AddStringToObject(root, "alarm", alarm_status == 1 ? "enable" : "disable");
+        cJSON_AddStringToObject(root, "temperature", temp_str);
+        cJSON_AddStringToObject(root, "humidity", humid_str);
+        cJSON_AddStringToObject(root, "CO2", CO2_str);
+
+        // 如果警报使能，则判断是否触发警报
+        if (alarm_status && (temp_data > 100 || humid_data > 100 || CO2 > 1000))
+        {
+            buzzer_set("ON");
+            printf("alarm_status = %d\n", alarm_status);
+        }
+        else if (alarm_status && auto_status)
+        {
+            buzzer_set("OFF");
+        }
+
+        char *service1;
+        service1 = cJSON_Print(root);
+        cJSON_Delete(root);
+
+        services[0].event_time = GetEventTimesStamp(); // if event_time is set to NULL, the time will be the iot-platform's time.
+        services[0].service_id = "smokeDetector";
+        services[0].properties = service1;
+
+        int messageId = IOTA_PropertiesReport(services, serviceNum, 0, NULL);
+        if (messageId != 0)
+        {
+            PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_PropertiesReport() failed, messageId %d\n", messageId);
+        }
+        TimeSleep(1000);
+    }
+    MemFree(&services[0].event_time);
 }
 
 int main(int argc, char **argv)
@@ -1539,112 +1524,203 @@ int main(int argc, char **argv)
 #if defined(_DEBUG)
     (void)setvbuf(stdout, NULL, _IONBF, 0); // in order to make the console log printed immediately at debug mode
 #endif
+    unsigned long freq = 0;
+    char *endstr, *str;
+
+    // 1.打开文件
+    fd_led = open("/dev/led_drv", O_RDWR);
+    if (fd_led == -1)
+    {
+        perror("open");
+        return -1;
+    }
+
+    buzzer_fd = open("/dev/pwm", O_RDWR);
+    if (buzzer_fd < 0)
+    {
+        perror("open device:");
+        exit(1);
+    }
+    ioctl(buzzer_fd, BUZZER_IOCTL_STOP, 0);
+
+    int x = 0, y = 0, s = 0;
+    const char *bmp[] = {"img/1.bmp", "img/2.bmp", "img/3.bmp"};
+
     sem_init(&s, 0, 0);
-    pthread_t p_btn;
+    pthread_t p_btn, p_xy, p_Report;
     pthread_create(&p_btn, NULL, getBtn, NULL);
+    pthread_create(&p_xy, NULL, check_xy, NULL);
+    pthread_create(&p_Report, NULL, Report, NULL);
+    init_lcd();
 
-    IOTA_SetPrintLogCallback(MyPrintLog);
-    PrintfLog(EN_LOG_LEVEL_INFO, "device_demo: start test ===================>\n");
-
-    if (IOTA_Init(g_workPath) < 0)
     {
-        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: IOTA_Init() error, init failed\n");
-        return 1;
-    }
+        IOTA_SetPrintLogCallback(MyPrintLog);
+        PrintfLog(EN_LOG_LEVEL_INFO, "device_demo: start test ===================>\n");
 
-    SetAuthConfig();
-    SetMyCallbacks();
-    // add your fileName to store device rule
-    IOTA_EnableDeviceRuleStorage(DEVICE_RULE_FILE_PATH);
-
-#ifndef CUSTOM_RECONNECT_SWITCH
-    // see handleLoginSuccess and handleLoginFailure for login result
-    int ret = IOTA_Connect();
-    if (ret != 0)
-    {
-        PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: IOTA_Auth() error, Auth failed, result %d\n", ret);
-    }
-
-    TimeSleep(10500);
-#else
-    ReconnectDemo();
-    while (!IOTA_IsConnected())
-    {
-        int errorCode = pthread_yield();
-        if (errorCode != 0)
+        if (IOTA_Init(g_workPath) < 0)
         {
-            PrintfLog(EN_LOG_LEVEL_WARNING, "device_demo: pthread_yield() failed, error code: %d", errorCode);
+            PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: IOTA_Init() error, init failed\n");
+            return 1;
+        }
+
+        SetAuthConfig();
+        SetMyCallbacks();
+        // add your fileName to store device rule
+        IOTA_EnableDeviceRuleStorage(DEVICE_RULE_FILE_PATH);
+
+        // see handleLoginSuccess and handleLoginFailure for login result
+        int ret = IOTA_Connect();
+        if (ret != 0)
+        {
+            PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: IOTA_Auth() error, Auth failed, result %d\n", ret);
         }
     }
-#endif
-
-    int count = 0;
-    while (count < 10000)
+    while (1)
     {
-        // report device info
-        // Test_ReportDeviceInfo();
-        // TimeSleep(1500);
+        int index = 0;
+        unsigned char hand = 0;
+        show_24_bmp("img/home.bmp");
+        get_xy_s(&x, &y);
 
-        // // NTP
-        // IOTA_GetNTPTime(NULL);
+        // 相册
+        if ((160 < y && y < 250) && (100 < x && x < 160))
+            while (1)
+            {
+                show_24_bmp(bmp[index]);
+                while (com == -1)
+                {
+                }
 
-        // TimeSleep(1500);
+                if (com == 1)
+                    index++;
+                else if (com == 2)
+                    index--;
+                else if (com == 3)
+                    break;
+                if (index < 0)
+                    index = 2;
+                if (index > 2)
+                    index = 0;
+                com = -1;
+            }
+        // 视频
+        if ((160 < y && y < 250) && (350 < x && x < 420))
+            while (1)
+            {
+                system("./myplayer -slave -quiet -input  file=/pipe  -geometry  0:0 -zoom -x 800 -y 480  ./video/python.mp4  & ");
+                system("echo  'pause' >  /pipe");
+                while (1)
+                {
+                    while (com == -1)
+                    {
+                    }
+                    if (com == 1)
+                        system("echo  'seek -10' >  /pipe");
+                    else if (com == 2)
+                        system("echo  'seek +10' >  /pipe");
+                    else if (com == 3)
+                    {
+                        system("killall mplayer");
+                        break;
+                    }
+                    else if (com == 0)
+                        system("echo  'pause' >  /pipe");
+                    com = -1;
+                }
+                break;
+            }
+        // 家电控制
+        if ((160 < y && y < 250) && (630 < x && x < 700))
+            while (1)
+            {
+                show_24_bmp("img/led.bmp");
+                // 定义与驱动程序相同的数据格式
+                led_status_flag = true;
+                while (1)
+                {
+                    s = get_xy_s(&x, &y);
+                    if ((130 < y && y < 210) && (85 < x && x < 175))
+                        led_num = 7;
+                    else if ((130 < y && y < 210) && (265 < x && x < 365))
+                        led_num = 8;
+                    else if ((130 < y && y < 210) && (435 < x && x < 535))
+                        led_num = 9;
+                    else if ((130 < y && y < 210) && (615 < x && x < 705))
+                        led_num = 10;
+                    else if ((350 < y && y < 460) && (153 < x && x < 270))
+                    {
+                        alarm_set(alarm_status == true ? "OFF" : "ON");
+                        continue;
+                    }
+                    else if ((350 < y && y < 460) && (500 < x && x < 600))
+                    {
+                        buzzer_set(buzzer_stat == true ? "OFF" : "ON");
+                        auto_status = !auto_status;
+                        continue;
+                    }
+                    else if (s == 3)
+                        break;
+                    else
+                        continue;
+                    led_status[led_num - 7] = !led_status[led_num - 7];
 
-        // // report device log
-        // unsigned long long timestamp = getTime();
-        // char timeStampStr[14];
-        // (void)sprintf_s(timeStampStr, sizeof(timeStampStr), "%llu", timestamp);
-        // char *log = "device log";
-        // IOTA_ReportDeviceLog("DEVICE_STATUS", log, timeStampStr, NULL);
-
-        // // message up
-        // Test_MessageReport();
-
-        // TimeSleep(1500);
-        sem_wait(&s);
-        // properties report
-        Test_PropertiesReport();
-
-        // TimeSleep(1500);
-
-        // // batchProperties report
-        // Test_BatchPropertiesReport(g_subDeviceId);
-
-        // TimeSleep(1500);
-
-        // // command response
-        // Test_CommandResponse("1005");
-
-        // TimeSleep(1500);
-
-        // // propSetResponse
-        // Test_PropSetResponse("1006");
-
-        // TimeSleep(1500);
-
-        // // propSetResponse
-        // Test_PropGetResponse("1007");
-
-        // TimeSleep(5500);
-
-        // IOTA_SubscribeUserTopic("devMsg");
-
-        // TimeSleep(1500);
-
-        // // get device shadow
-        // IOTA_GetDeviceShadow("1232", NULL, NULL, NULL);
-
-        // // m2m send msg
-        // Test_M2MSendMsg();
-
-        count++;
+                    buf[0] = led_status[led_num - 7];
+                    buf[1] = led_num;
+                    led_set(led_num, led_status);
+                }
+                led_status_flag = false;
+                break;
+            }
     }
-    count = 0;
-    while (count < 100)
-    {
-        count++;
-        TimeSleep(11050);
-    }
 
+    close(buzzer_fd);
     return 0;
 }
+// report device info
+// Test_ReportDeviceInfo();
+// TimeSleep(1500);
+// // NTP
+// IOTA_GetNTPTime(NULL);
+// TimeSleep(1500);
+// // report device log
+// unsigned long long timestamp = getTime();
+// char timeStampStr[14];
+// (void)sprintf_s(timeStampStr, sizeof(timeStampStr), "%llu", timestamp);
+// char *log = "device log";
+// IOTA_ReportDeviceLog("DEVICE_STATUS", log, timeStampStr, NULL);
+// // message up
+// Test_MessageReport();
+// TimeSleep(1500);
+
+// properties report
+// TimeSleep(1500);
+
+// // batchProperties report
+// Test_BatchPropertiesReport(g_subDeviceId);
+
+// TimeSleep(1500);
+
+// // command response
+// Test_CommandResponse("1005");
+
+// TimeSleep(1500);
+
+// // propSetResponse
+// Test_PropSetResponse("1006");
+
+// TimeSleep(1500);
+
+// // propSetResponse
+// Test_PropGetResponse("1007");
+
+// TimeSleep(5500);
+
+// IOTA_SubscribeUserTopic("devMsg");
+
+// TimeSleep(1500);
+
+// // get device shadow
+// IOTA_GetDeviceShadow("1232", NULL, NULL, NULL);
+
+// // m2m send msg
+// Test_M2MSendMsg();

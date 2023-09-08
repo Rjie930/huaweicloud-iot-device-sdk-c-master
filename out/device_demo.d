@@ -36,18 +36,16 @@ out/device_demo.o: src/device_demo/device_demo.c \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/fcntl.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/fcntl-linux.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/stat.h \
- /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/semaphore.h \
- /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/types.h \
- /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/select.h \
- /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/select.h \
- /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/time.h \
- /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/sysmacros.h \
- /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/semaphore.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/pthread.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sched.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/sched.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/time.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/xlocale.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/setjmp.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/types.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/select.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/select.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/sysmacros.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/unistd.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/posix_opt.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/environments.h \
@@ -87,7 +85,9 @@ out/device_demo.o: src/device_demo/device_demo.c \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/asm/errno.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/asm-generic/errno.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/asm-generic/errno-base.h \
- include/device/input.h include/device/map.h
+ include/device/input.h include/device/map.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/semaphore.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/semaphore.h
 
 /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/stdc-predef.h:
 
@@ -163,7 +163,17 @@ out/device_demo.o: src/device_demo/device_demo.c \
 
 /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/stat.h:
 
-/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/semaphore.h:
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/pthread.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sched.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/sched.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/time.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/xlocale.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/setjmp.h:
 
 /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/types.h:
 
@@ -171,21 +181,7 @@ out/device_demo.o: src/device_demo/device_demo.c \
 
 /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/select.h:
 
-/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/time.h:
-
 /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/sysmacros.h:
-
-/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/semaphore.h:
-
-/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/pthread.h:
-
-/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sched.h:
-
-/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/sched.h:
-
-/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/xlocale.h:
-
-/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/setjmp.h:
 
 /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/unistd.h:
 
@@ -282,3 +278,7 @@ include/third_party/libboundscheck/securectype.h:
 include/device/input.h:
 
 include/device/map.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/semaphore.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/semaphore.h:

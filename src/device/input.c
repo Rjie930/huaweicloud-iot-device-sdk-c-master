@@ -3,7 +3,7 @@
  * @version        : 3.14
  * @Author         : Rjie
  * @Date           : 2023-09-07 18:49
- * @LastEditTime   : 2023-09-07 18:49
+ * @LastEditTime   : 2023-09-08 17:26
  *******************************************************************/
 #include <stdio.h>
 #include <sys/types.h>
@@ -44,13 +44,13 @@ int get_xy_s(int *x, int *y)
                 // printf("touch %d\n",xy.value);
                 if (xy.value == 1)
                 {
-                    printf("press\n");
+                    // printf("press\n");
                     tx = *x;
                     ty = *y;
                 }
                 if (xy.value == 0)
                 {
-                    printf("up\n");
+                    // printf("up\n");
                     // 左
                     if ((*x - tx < -50))
                         return 1;

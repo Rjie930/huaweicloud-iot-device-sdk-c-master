@@ -10,4 +10,6 @@
 void init_lcd();
 void show_24_bmp(const char *path);
 void show_led_bmp(int num, int status);
+void show_buzzer_bmp(int status);
+void show_alarm_bmp(int status);
 #endif

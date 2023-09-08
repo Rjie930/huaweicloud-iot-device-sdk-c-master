@@ -3,7 +3,7 @@
  * @version        : 3.14
  * @Author         : Rjie
  * @Date           : 2023-09-07 18:49
- * @LastEditTime   : 2023-09-07 18:49
+ * @LastEditTime   : 2023-09-08 18:52
  *******************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -107,9 +107,81 @@ void show_led_bmp(int num, int status)
     // rgb to  argb
     for (i = 0; i < 800 * 480; i++)
     {
-        if (status && (190 < i / 800) && (i / 800 < 390) && (i % 800 < 210 + (num * 190)) && (i % 800 > 55 + (num * 180)))
+        if (status && (190 < i / 800) && (i / 800 < 375) && (i % 800 < 210 + (num * 190)) && (i % 800 > 55 + (num * 180)))
             argb[i * 4] = 255;
-        else if (!status && (190 < i / 800) && (i / 800 < 390) && (i % 800 < 210 + (num * 190)) && (i % 800 > 55 + (num * 180)))
+        else if (!status && (190 < i / 800) && (i / 800 < 375) && (i % 800 < 210 + (num * 190)) && (i % 800 > 55 + (num * 180)))
+            argb[i * 4] = rgb[i * 3];
+    }
+
+    // 翻转  Y 轴
+    char f_argb[800 * 4 * 480] = {0};
+
+    for (j = 0; j < 480; j++)
+    {
+        for (i = 0; i < 800 * 4; i++)
+        {
+            f_argb[j * 800 * 4 + i] = argb[(479 - j) * 800 * 4 + i];
+        }
+    }
+
+    // 把翻转后的数据放入   lcd 设备中
+    for (i = 0; i < 800 * 480 * 4; i++)
+    {
+        lcd_p[i] = f_argb[i];
+    }
+}
+
+void show_buzzer_bmp(int status)
+{
+    int i = 0;
+    int j = 0;
+    if (lcd_p == NULL)
+    {
+        printf("lcd no inti!\n");
+        exit(0);
+    }
+    // rgb to  argb
+    for (i = 0; i < 800 * 480; i++)
+    {
+        if (status && (0 < i / 800) && (i / 800 < 140) && (i % 800 < 625) && (i % 800 > 500))
+            argb[i * 4] = 255;
+        else if (!status && (0 < i / 800) && (i / 800 < 140) && (i % 800 < 625) && (i % 800 > 500))
+            argb[i * 4] = rgb[i * 3];
+    }
+    // 翻转  Y 轴
+    char f_argb[800 * 4 * 480] = {0};
+
+    for (j = 0; j < 480; j++)
+    {
+        for (i = 0; i < 800 * 4; i++)
+        {
+            f_argb[j * 800 * 4 + i] = argb[(479 - j) * 800 * 4 + i];
+        }
+    }
+
+    // 把翻转后的数据放入   lcd 设备中
+    for (i = 0; i < 800 * 480 * 4; i++)
+    {
+        lcd_p[i] = f_argb[i];
+    }
+}
+
+void show_alarm_bmp(int status)
+{
+    int i = 0;
+    int j = 0;
+    if (lcd_p == NULL)
+    {
+        printf("lcd no inti!\n");
+        exit(0);
+    }
+    // rgb to  argb
+
+    for (i = 0; i < 800 * 480; i++)
+    {
+        if (status && (0 < i / 800) && (i / 800 < 140) && (i % 800 < 290) && (i % 800 > 150))
+            argb[i * 4] = 255;
+        else if (!status && (0 < i / 800) && (i / 800 < 140) && (i % 800 < 290) && (i % 800 > 150))
             argb[i * 4] = rgb[i * 3];
     }
 
