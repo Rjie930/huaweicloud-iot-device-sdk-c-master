@@ -850,10 +850,12 @@ static void HandleCommandRequest(EN_IOTA_COMMAND *command)
         if (strcmp(status, "enable") == 0)
         {
             alarm_status = true;
+            alarm_set("ON");
         }
         else
         {
             alarm_status = false;
+            alarm_set("Off");
         }
     }
     else if (strcmp(command->command_name, "setReportingFrequency") == 0)
