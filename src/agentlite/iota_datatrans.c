@@ -163,7 +163,7 @@ HW_API_FUNC HW_INT IOTA_PropertiesReport(ST_IOTA_SERVICE_DATA_INFO pServiceData[
         return IOTA_FAILURE;
     } else {
         messageId = ReportDeviceProperties(payload, compressFlag, context, NULL);
-        PrintfLog(EN_LOG_LEVEL_DEBUG, "iota_datatrans: IOTA_PropertiesReport() with payload ==> %s\n", payload);
+        // PrintfLog(EN_LOG_LEVEL_DEBUG, "iota_datatrans: IOTA_PropertiesReport() with payload ==> %s\n", payload);
         MemFree(&payload);
     }
     return messageId;

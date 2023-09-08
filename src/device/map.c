@@ -3,7 +3,7 @@
  * @version        : 3.14
  * @Author         : Rjie
  * @Date           : 2023-09-07 18:49
- * @LastEditTime   : 2023-09-08 18:52
+ * @LastEditTime   : 2023-09-08 20:29
  *******************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,7 +125,7 @@ void show_led_bmp(int num, int status)
     }
 
     // 把翻转后的数据放入   lcd 设备中
-    for (i = 0; i < 800 * 480 * 4; i++)
+    for (i = 800*100*4; i < 800 * 480 * 4; i++)
     {
         lcd_p[i] = f_argb[i];
     }

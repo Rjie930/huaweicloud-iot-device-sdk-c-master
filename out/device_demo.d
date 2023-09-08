@@ -85,7 +85,11 @@ out/device_demo.o: src/device_demo/device_demo.c \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/asm/errno.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/asm-generic/errno.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/asm-generic/errno-base.h \
- include/device/input.h include/device/map.h \
+ include/device/input.h include/device/map.h include/truetype/font.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/stat.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/mman.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/mman.h \
+ /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/mman-linux.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/semaphore.h \
  /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/semaphore.h
 
@@ -278,6 +282,16 @@ include/third_party/libboundscheck/securectype.h:
 include/device/input.h:
 
 include/device/map.h:
+
+include/truetype/font.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/stat.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/sys/mman.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/mman.h:
+
+/home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/bits/mman-linux.h:
 
 /home/zz/arm/5.4.0/usr/arm-none-linux-gnueabi/sysroot/usr/include/semaphore.h:
 

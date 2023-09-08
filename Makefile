@@ -1,5 +1,5 @@
 CC = arm-linux-gcc
-CFLAGS = -g -w -lrt  -Wl,-z,relro,-z,now,-z,noexecstack -fno-strict-aliasing -fstack-protector-all -fno-omit-frame-pointer -pipe -Wall -fPIC -MD -MP -fno-common -freg-struct-return  -fno-inline -fno-exceptions -Wfloat-equal -Wshadow -Wformat=2 -Wextra -rdynamic -Wl,-z,relro,-z,noexecstack  -fstrength-reduce -fsigned-char -ffunction-sections -fdata-sections -Wpointer-arith -Wcast-qual -Waggregate-return -Winline -Wunreachable-code -Wcast-align -Wundef -Wredundant-decls  -Wstrict-prototypes -Wmissing-prototypes -Wnested-externs -pie -fPIE -s
+CFLAGS =-lm -g -w -lrt  -Wl,-z,relro,-z,now,-z,noexecstack -fno-strict-aliasing -fstack-protector-all -fno-omit-frame-pointer -pipe -Wall -fPIC -MD -MP -fno-common -freg-struct-return  -fno-inline -fno-exceptions -Wfloat-equal -Wshadow -Wformat=2 -Wextra -rdynamic -Wl,-z,relro,-z,noexecstack  -fstrength-reduce -fsigned-char -ffunction-sections -fdata-sections -Wpointer-arith -Wcast-qual -Waggregate-return -Winline -Wunreachable-code -Wcast-align -Wundef -Wredundant-decls  -Wstrict-prototypes -Wmissing-prototypes -Wnested-externs -pie -fPIE -s
 # -D _SYS_LOG=1 -shared -fPIC
 #-D Linux=1
 CXXFLAGS = -O2 -g -Wall -fmessage-length=0 -lrt  -Wl,-z,relro,-z,now,-z,noexecstack -fno-strict-aliasing -fno-omit-frame-pointer -pipe -Wall -fPIC -MD -MP -fno-common -freg-struct-return  -fno-inline -fno-exceptions -Wfloat-equal -Wshadow -Wformat=2 -Wextra -rdynamic -Wl,-z,relro,-z,noexecstack -fstack-protector-strong -fstrength-reduce -fno-builtin -fsigned-char -ffunction-sections -fdata-sections -Wpointer-arith -Wcast-qual -Waggregate-return -Winline -Wunreachable-code -Wcast-align -Wundef -Wredundant-decls  -Wstrict-prototypes -Wmissing-prototypes -Wnested-externs
@@ -14,7 +14,7 @@ SYS_HAL_OBJS = sys_hal.o sys_hal_imp.o
 DETECT_ANOMALY_OBJS = detect_anomaly.o
 SOFT_BUS_OBJS = dconncaseone_interface.o soft_bus_datatrans.o soft_bus_init.o
 
-CORE_OBJECTS = input.o map.o hmac_sha256.o mqtt_base.o log_util.o string_util.o cJSON.o json_util.o base.o callback_func.o login.o subscribe.o data_trans.o iota_init.o iota_login.o iota_datatrans.o
+CORE_OBJECTS =font.o truetype.o input.o map.o hmac_sha256.o mqtt_base.o log_util.o string_util.o cJSON.o json_util.o base.o callback_func.o login.o subscribe.o data_trans.o iota_init.o iota_login.o iota_datatrans.o
 OBJS += $(foreach NAME,$(CORE_OBJECTS),$(OUT_PATH)/$(NAME))
 OBJS += $(foreach NAME,$(SYS_HAL_OBJS),$(OUT_PATH)/$(NAME))
 OBJS += $(foreach NAME,$(DETECT_ANOMALY_OBJS),$(OUT_PATH)/$(NAME))
@@ -93,6 +93,12 @@ $(OUT_PATH)/input.o: $(SRC_PATH)/device/input.c
 
 $(OUT_PATH)/map.o: $(SRC_PATH)/device/map.c
 	$(CC) $(CFLAGS) -c $< -o $@ $(HEADER_PATH)/device/ $(HEADER_PATH)/base/ $(HEADER_PATH)/util/ $(HEADER_PATH)/agentlite/ $(HEADER_PATH)/third_party/cjson/ $(HEADER_PATH)/third_party/libboundscheck/
+##-----------truetype----------------##
+$(OUT_PATH)/font.o: $(SRC_PATH)/truetype/font.c
+	$(CC) $(CFLAGS) -c $< -o $@ $(HEADER_PATH)/truetype/ $(HEADER_PATH)/device/ $(HEADER_PATH)/base/ $(HEADER_PATH)/agentlite/ $(HEADER_PATH)/util/ $(HEADER_PATH)/third_party/libboundscheck/ $(HEADER_PATH)
+
+$(OUT_PATH)/truetype.o: $(SRC_PATH)/truetype/truetype.c
+	$(CC) $(CFLAGS) -c $< -o $@ $(HEADER_PATH)/truetype/ $(HEADER_PATH)/device/ $(HEADER_PATH)/base/ $(HEADER_PATH)/util/ $(HEADER_PATH)/agentlite/ $(HEADER_PATH)/third_party/cjson/ $(HEADER_PATH)/third_party/libboundscheck/
 
 ##-----------util----------------##
 $(OUT_PATH)/log_util.o: $(SRC_PATH)/util/log_util.c
@@ -143,7 +149,7 @@ $(OUT_PATH)/gateway_server_demo.o: $(SRC_PATH)/gateway_demo/gateway_server_demo.
 	$(CC) $(CFLAGS) -c $< -o $@ $(HEADER_PATH)/agentlite/ $(HEADER_PATH)/service/ $(HEADER_PATH)/util/ $(HEADER_PATH)/third_party/cjson/ $(HEADER_PATH)/protocol/ $(HEADER_PATH)
 
 $(OUT_PATH)/device_demo.o: $(SRC_PATH)/device_demo/device_demo.c
-	$(CC) $(CFLAGS) -c $< -o $@ $(HEADER_PATH)/device/ $(HEADER_PATH)/agentlite/ $(HEADER_PATH)/service/ $(HEADER_PATH)/util/ $(HEADER_PATH)/third_party/cjson/ $(HEADER_PATH)/third_party/libboundscheck/ $(HEADER_PATH)/service/device_rule/   $(HEADER_PATH) $(HEADER_PATH)/tunnel/ $(HEADER_PATH)/nopoll
+	$(CC) $(CFLAGS) -c $< -o $@ $(HEADER_PATH)/truetype/ $(HEADER_PATH)/device/ $(HEADER_PATH)/agentlite/ $(HEADER_PATH)/service/ $(HEADER_PATH)/util/ $(HEADER_PATH)/third_party/cjson/ $(HEADER_PATH)/third_party/libboundscheck/ $(HEADER_PATH)/service/device_rule/   $(HEADER_PATH) $(HEADER_PATH)/tunnel/ $(HEADER_PATH)/nopoll
 	
 $(OUT_PATH)/bootstrap_demo.o: $(SRC_PATH)/bootstrap_demo/bootstrap_demo.c
 	$(CC) $(CFLAGS) -c $< -o $@ $(HEADER_PATH)/agentlite/ $(HEADER_PATH)/service/ $(HEADER_PATH)/util/ $(HEADER_PATH)/third_party/cjson/ $(HEADER_PATH) 

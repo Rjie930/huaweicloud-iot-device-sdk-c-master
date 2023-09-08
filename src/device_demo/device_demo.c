@@ -37,6 +37,9 @@ bool buzzer_stat = false;
 // 警报的使能状态
 bool alarm_status = true;
 
+// 数据刷新延迟时间
+int sleep_time = 1;
+
 static char *g_workPath = ".";
 
 // You can get the access address from IoT Console "Overview" -> "Access Information"
@@ -853,6 +856,13 @@ static void HandleCommandRequest(EN_IOTA_COMMAND *command)
             alarm_status = false;
         }
     }
+    else if (strcmp(command->command_name, "setReportingFrequency") == 0)
+    {
+        cJSON *root = cJSON_Parse(command->paras);
+        cJSON *status_data = cJSON_GetObjectItem(root, "value");
+        sleep_time = cJSON_GetNumberValue(status_data);
+        printf("command:%s,value:%d\n", command->command_name, sleep_time);
+    }
 
     Test_CommandResponse(command->request_id); // response command
 }
@@ -1256,12 +1266,14 @@ static void ReconnectDemo()
 
 #include "input.h"
 #include "map.h"
+#include "font.h"
 #include <semaphore.h>
 
 #define BUZZER_IOCTL_SET_FREQ 1
 #define BUZZER_IOCTL_STOP 0
 
 sem_t s;
+extern char *lcd_p;
 
 // btn
 #define ARRY_SIZE(x) (sizeof(x) / sizeof(x[0]))
@@ -1269,6 +1281,22 @@ int temp_data = 0;
 
 // 手势
 int com = -1;
+
+// 显示中文
+void showbitmap(bitmap *bm, int x, int y, char *p)
+{
+    p += 4 * x + y * 4 * 800;
+    for (int j = 0; j < bm->height; j++)
+    {
+        for (int i = 0; i < bm->width; i++)
+        {
+            if (*(bm->map + i * 4 + bm->width * j * 4) == 0)
+                continue;
+            memcpy(p + i * 4 + 4 * 800 * j, bm->map + i * 4 + bm->width * j * 4, 4);
+        }
+    }
+    bzero(bm->map, bm->width * bm->height * bm->byteperpixel);
+}
 
 // 上报属性
 static void PropertiesReport(char *Properties, char *value)
@@ -1340,7 +1368,7 @@ void led_set(char led_num, char *led_status)
 
 void buzzer_set(char *buzzer_status)
 {
-    printf("buzzer set %s\n", buzzer_status);
+    printf("\nbuzzer set %s\n", buzzer_status);
     // 改变buzzer状态
     if (strcmp(buzzer_status, "ON") == 0)
     {
@@ -1460,6 +1488,17 @@ void *getBtn(void *argv)
 
 void *Report(void *argv)
 {
+    // 温湿度字框
+    font *f1 = fontLoad("simhei.ttf");
+    fontSetSize(f1, 35);
+    bitmap *temp_humid;
+    temp_humid = createBitmapWithInit(150, 90, 4, 0xffffff00);
+
+    // 二氧化碳浓度字框
+    fontSetSize(f1, 35);
+    bitmap *CO2_bit;
+    CO2_bit = createBitmapWithInit(150, 50, 4, 0xffffff00);
+
     const int serviceNum = 1; // reported services' totol count
     ST_IOTA_SERVICE_DATA_INFO services[serviceNum];
 
@@ -1470,14 +1509,14 @@ void *Report(void *argv)
         // 生成数据
         temp_data = rand() % 50 - 10;
 
-        printf("temp have been set\n");
-        TimeSleep(500);
+        printf("\ntemp have been set\n");
+        TimeSleep(1000 * sleep_time);
 
         humid_data = 68 + rand() % 10;
         CO2 = 350 + rand() % 650;
 
         // 格式化
-        char temp_str[6], humid_str[6], CO2_str[7];
+        char temp_str[6], humid_str[6], CO2_str[7], humid_temp_str[30];
         sprintf(temp_str, "%d°", temp_data);
         sprintf(humid_str, "%d%%", humid_data);
         sprintf(CO2_str, "%dppm", CO2);
@@ -1514,7 +1553,18 @@ void *Report(void *argv)
         {
             PrintfLog(EN_LOG_LEVEL_ERROR, "device_demo: Test_PropertiesReport() failed, messageId %d\n", messageId);
         }
-        TimeSleep(1000);
+        printf("\nReport: %s\n", service1);
+
+        if (led_status_flag /*如果在家电控制界面*/)
+        {
+            // 输出数据到屏幕
+            sprintf(humid_temp_str, "温度:%d\n湿度:%d%%", temp_data, humid_data);
+            fontPrint(f1, temp_humid, 0, 0, humid_temp_str, 0xffff00, 0);
+            showbitmap(temp_humid, 200, 20, lcd_p);
+
+            fontPrint(f1, CO2_bit, 0, 0, CO2_str, 0xffff00, 0);
+            showbitmap(CO2_bit, 580, 35, lcd_p);
+        }
     }
     MemFree(&services[0].event_time);
 }
@@ -1663,13 +1713,13 @@ int main(int argc, char **argv)
                     else
                         continue;
 
-                    //跟新灯的属性、图标
+                    // 跟新灯的属性、图标
                     led_status[led_num - 7] = !led_status[led_num - 7];
                     buf[0] = led_status[led_num - 7];
                     buf[1] = led_num;
                     led_set(led_num, led_status);
                 }
-                //
+                // 退出家电控制界面
                 led_status_flag = false;
                 break;
             }
