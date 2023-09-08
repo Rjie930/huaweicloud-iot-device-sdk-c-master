@@ -1662,12 +1662,14 @@ int main(int argc, char **argv)
                         break;
                     else
                         continue;
-                    led_status[led_num - 7] = !led_status[led_num - 7];
 
+                    //跟新灯的属性、图标
+                    led_status[led_num - 7] = !led_status[led_num - 7];
                     buf[0] = led_status[led_num - 7];
                     buf[1] = led_num;
                     led_set(led_num, led_status);
                 }
+                //
                 led_status_flag = false;
                 break;
             }
