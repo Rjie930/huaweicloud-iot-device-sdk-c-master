@@ -36,6 +36,7 @@ bool buzzer_stat = false;
 
 // 警报的使能状态
 bool alarm_status = true;
+    alarm_set("ON");
 
 // 数据刷新延迟时间
 int sleep_time = 1;
