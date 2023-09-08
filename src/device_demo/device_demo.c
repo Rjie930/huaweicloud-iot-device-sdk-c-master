@@ -1287,13 +1287,14 @@ int com = -1;
 // 显示中文
 void showbitmap(bitmap *bm, int x, int y, char *p)
 {
+    int bgcolor = 0xffffff00;
     p += 4 * x + y * 4 * 800;
     for (int j = 0; j < bm->height; j++)
     {
         for (int i = 0; i < bm->width; i++)
         {
             if (*(bm->map + i * 4 + bm->width * j * 4) == 0)
-                memcpy(p + i * 4 + 4 * 800 * j, 0xffffff00, 4);
+                memcpy(p + i * 4 + 4 * 800 * j, &bgcolor, 4);
             memcpy(p + i * 4 + 4 * 800 * j, bm->map + i * 4 + bm->width * j * 4, 4);
         }
     }
