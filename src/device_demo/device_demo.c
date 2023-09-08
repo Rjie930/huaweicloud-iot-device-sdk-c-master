@@ -1293,7 +1293,7 @@ void showbitmap(bitmap *bm, int x, int y, char *p)
         for (int i = 0; i < bm->width; i++)
         {
             if (*(bm->map + i * 4 + bm->width * j * 4) == 0)
-                continue;
+                memcpy(p + i * 4 + 4 * 800 * j, 0xffffff00, 4);
             memcpy(p + i * 4 + 4 * 800 * j, bm->map + i * 4 + bm->width * j * 4, 4);
         }
     }
@@ -1405,13 +1405,13 @@ void alarm_set(char *alarm_status_tmp)
     {
         alarm_status = true;
         if (led_status_flag)
-            show_alarm_bmp(1);
+            show_alarm_bmp(0);
     }
     else if (strcmp(alarm_status_tmp, "OFF") == 0)
     {
         alarm_status = false;
         if (led_status_flag)
-            show_alarm_bmp(0);
+            show_alarm_bmp(1);
     }
 
     // 上报属性
