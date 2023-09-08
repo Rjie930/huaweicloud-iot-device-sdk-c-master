@@ -36,7 +36,6 @@ bool buzzer_stat = false;
 
 // 警报的使能状态
 bool alarm_status = true;
-    alarm_set("ON");
 
 // 数据刷新延迟时间
 int sleep_time = 1;
@@ -1687,6 +1686,7 @@ int main(int argc, char **argv)
             while (1)
             {
                 show_24_bmp("img/led.bmp");
+                alarm_set("ON");
                 // 定义与驱动程序相同的数据格式
                 led_status_flag = true;
                 while (1)
